@@ -1,27 +1,82 @@
 const express = require('express');
 const axios = require('axios');
 const app = express();
-
+require('dotenv').config()
 app.set('view engine', 'pug');
 app.use(express.static(__dirname + '/public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // * Please DO NOT INCLUDE the private app access token in your repo. Don't do this practicum in your normal account.
-const PRIVATE_APP_ACCESS = '';
+const PRIVATE_APP_ACCESS = process.env.PRIVATE_APP_ACCESS;
 
 // TODO: ROUTE 1 - Create a new app.get route for the homepage to call your custom object data. Pass this data along to the front-end and create a new pug template in the views folder.
 
 // * Code for Route 1 goes here
 
+app.get('/', async (req, res) => {
+  const objectType = '2-269225019'; // your custom object's internal name or object type ID
+  const properties = ['name', 'species', 'age']; // your custom property internal names
+
+  try {
+    const response = await axios.get(
+      `https://api.hubapi.com/crm/v3/objects/${objectType}`,
+      {
+        params: {
+          properties: properties.join(','),
+        },
+        headers: {
+          Authorization: `Bearer ${process.env.PRIVATE_APP_ACCESS}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const records = response.data.results;
+    res.render('homepage', { title: 'Custom Object Homepage', records });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error fetching records');
+  }
+});
+
+
 // TODO: ROUTE 2 - Create a new app.get route for the form to create or update new custom object data. Send this data along in the next route.
 
 // * Code for Route 2 goes here
-
+app.get('/update-cobj', async (req, res) => {
+  res.render('updates', { title: 'Update Custom Object Form | Integrating With HubSpot I Practicum' });
+});
 // TODO: ROUTE 3 - Create a new app.post route for the custom objects form to create or update your custom object data. Once executed, redirect the user to the homepage.
 
 // * Code for Route 3 goes here
+app.post('/update-cobj', async (req, res) => {
+  const objectType = '2-269225019'; // same internal name/object type ID as route 1
 
+  try {
+    await axios.post(
+      `https://api.hubapi.com/crm/v3/objects/${objectType}`,
+      {
+        properties: {
+          name: req.body.name,
+          species: req.body.species,
+          age: req.body.age,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PRIVATE_APP_ACCESS}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    res.redirect('/');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error creating record');
+  }
+});
 /** 
 * * This is sample code to give you a reference for how you should structure your calls. 
 
